@@ -1,6 +1,6 @@
 # airflow-setup
 
-##Line of action:
+## Line of action:
 * clean data
 * create splits
 * create tfidf 
@@ -10,4 +10,4 @@
 * re-train models automatically once "enough" new data is availible
 
 
-### work in progress 
+### work in progress... 
