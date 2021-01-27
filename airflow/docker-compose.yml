@@ -1,0 +1,51 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:9.6
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    expose:
+      - 5432
+    #volumes:
+    #  - ./insert_postgres_hook.sql:/docker-entrypoint-initdb.d/insert_postgres_hook.sql
+  pgadmin-compose:
+    image: dpage/pgadmin4
+    environment: 
+        #PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: 30 
+        PGADMIN_DEFAULT_EMAIL: "admin@mail.com"
+        PGADMIN_DEFAULT_PASSWORD: "admin123!"
+    ports: 
+        - "5555:80"
+    depends_on: 
+        - postgres  
+  webserver:
+    build: .
+    #image: puckel/docker-airflow:1.10.8
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      #- DATABASE_URL=postgresql://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__CORE__FERNET_KEY= 'qjpPmZDrA0fzAKTyuVTmX9ISvpPRFbS2K4Mq1Zwtjzk='
+      - AIRFLOW_CONN_POSTGRES_HOOK=postgres://airflow:airflow@postgres:5432/airflow
+      - LOAD_EX=n
+      - EXECUTOR=Local
+    volumes:
+      # map folders
+      - ./scripts:/usr/local/scripts
+      - ./dags:/usr/local/airflow/dags
+      - ./datasets/cleaned:/usr/local/datasets
+      # copy files
+      - /production/model/
+    ports:
+      - "8080:8080"
+    command: webserver 
+    #command: sh -c "webserver && export PYTHONPATH=/usr/local/models:$$PYTHONPATH"
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+      interval: 30s
+      timeout: 30s
+      retries: 2
+    

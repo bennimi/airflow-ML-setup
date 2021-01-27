@@ -1,0 +1,5 @@
+gensim==3.8.3
+nltk==3.5
+num2words==0.5.10
+spacy==2.3.5
+scikit-learn==0.24.0
