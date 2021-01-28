@@ -25,17 +25,17 @@ from sklearn.metrics import accuracy_score,recall_score, precision_score, classi
 import csv, os, glob, sys, random, pickle
 import pandas as pd
 
-import TextProcessorModule as tp
-from TextProcessorModule import TextTransformer
+import dag_setup.helper.TextProcessorModule.TextProcessorModule as tp
+from dag_setup.helper.TextProcessorModule import TextTransformer
 
-from ModelsModule import svc_model, rdf_model, logreg_model
+from dag_setup.ModelsModule import svc_model, rdf_model, logreg_model
 
 #from datetime import datetime, timedelta
 
 
 # 2.1 set variables 
 ### create airflow variables
-###### https://www.youtube.com/watch?v=bHQ7nzn0j6k
+
 
 
 script_path = r"/usr/local/scripts/"
