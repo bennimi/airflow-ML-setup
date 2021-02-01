@@ -8,7 +8,7 @@ info: clean data for model training
 """
 
 
-import TextProcessorModule as tp
+import dag_setup.helper.TextProcessorModule as tp
 import pandas as pd
 
 #import Git_Repo_Nudge.TextProcessor as tp
@@ -25,7 +25,7 @@ def create_clean_1(in_path,name):
                       to_sentence=True)
     df_temp = clean_1.transform(df.iloc[:,1])
     df_temp = pd.concat([df.iloc[:,0],df_temp], axis=1)
-    df_temp.to_csv(in_path+"prepared_1.csv",index=None,header=False)
+    df_temp.to_csv(in_path+name ,index=None,header=False)
 
 
 def create_clean_2(in_path,name):
@@ -35,7 +35,7 @@ def create_clean_2(in_path,name):
                       to_sentence=True)
     df_temp = clean_2.transform(df.iloc[:,1])
     df_temp = pd.concat([df.iloc[:,0],df_temp], axis=1)
-    df_temp.to_csv(in_path+"prepared_2.csv",index=None,header=False)
+    df_temp.to_csv(in_path+name,index=None,header=False)
 
 
 

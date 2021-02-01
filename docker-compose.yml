@@ -1,4 +1,4 @@
-version: '3'
+version: '3.6'
 services:
   postgres:
     image: postgres:9.6
@@ -20,25 +20,27 @@ services:
     depends_on:
         - postgres
     ports: 
-        - "5555:80"
+        - "5050:80"   
   webserver:
-    build: ./airflow/
-    #image: puckel/docker-airflow:1.10.8
+    build: ./airflow
+    #image: puckel/docker-airflow:1.10.9
     restart: always
     depends_on:
       - postgres
     environment:
-      #- DATABASE_URL=postgresql://airflow:airflow@postgres:5432/airflow
+      - DATABASE_URL=postgresql://airflow:airflow@postgres:5432/model_db # set uri to get conn in dag (workaround)
+      - MODEL_DATABASE_CONN_NAME=postgres_hook
+      
       - AIRFLOW__CORE__FERNET_KEY= 'qjpPmZDrA0fzAKTyuVTmX9ISvpPRFbS2K4Mq1Zwtjzk='
-      - AIRFLOW_CONN_POSTGRES_HOOK=postgres://airflow:airflow@postgres:5432/model_db #create db connection
+      #- AIRFLOW__CONN__POSTGRES_HOOK=postgres://airflow:airflow@postgres:5432/model_db #create db conn
       - LOAD_EX=n
       - EXECUTOR=Local
-    volumes: # just for rapid testing purposes...
-      - ./models:/usr/local/model/
+    #volumes: # just for testing purposes...
+      #- ./datasets/:/usr/local/ 
+      #- ./models:/usr/local/model/
       #- ./airflow/dags:/usr/local/airflow/dags
-      #- ./datasets/cleaned:/usr/local/datasets 
       # copy files
-      - /production/model/
+      #- /production/model/
     ports:
       - "8080:8080"
     command: webserver 

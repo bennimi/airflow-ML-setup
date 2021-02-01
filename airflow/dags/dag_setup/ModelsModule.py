@@ -18,23 +18,13 @@ from sklearn.model_selection import GridSearchCV,RandomizedSearchCV
 #from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score,recall_score, precision_score, classification_report, confusion_matrix
 from sklearn.utils.fixes import loguniform
-import pandas as pd
+#import pandas as pd
 import numpy as np
 import pickle, sys, time
+from dag_setup.helper.helper_functions import TextTransformer
 
 ## use multiple classifiers in one pipeline 
 #https://stackoverflow.com/questions/23045318/scikit-grid-search-over-multiple-classifiers
-
-
-class TextTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, key):
-        self.key = key
-
-    def fit(self, X, y=None, *parg, **kwarg):
-        return self
-
-    def transform(self, X):
-        return X[self.key]
 
 
     
@@ -76,6 +66,13 @@ class TextTransformer(BaseEstimator, TransformerMixin):
 # model.fit(X_train_transformed, y_train)
 # preds = model.predict(X_test_transformed)
 
+
+def feature_pipeline(key="tweet",n_grams=(1,3),trunc_svd="randomized",n_comp=200):
+    feature_pipeline_fitted =  Pipeline([
+            ('transformer', TextTransformer(key='tweet')),
+            ('tfidf', TfidfVectorizer(ngram_range=n_grams)),
+            ('svd', TruncatedSVD(algorithm=trunc_svd, n_components=n_comp))])
+    return feature_pipeline_fitted
 
 def rdf_model(feature_pipeline):
     rdf_pipeline = Pipeline([('features', feature_pipeline),

@@ -13,7 +13,8 @@ CREATE TABLE public.tweets(
     id SERIAL PRIMARY KEY,
     timestamp_col TIMESTAMP,
     tweets_org  character varying(500),
-    tweets_cld  character varying(500),
+    tweets_clnd  character varying(500),
+    labels smallint NOT NULL,
     predictions smallint NOT NULL
     );
     

@@ -11,8 +11,7 @@ import gensim
 import gensim.utils
 from gensim import corpora,models
 import nltk
-for dependency in ("wordnet", "stopwords", "brown", "names","punkt"):
-  nltk.download(dependency)
+from dag_setup.helper.helper_functions import nltk_downloads
   
 """ Error within packages normalise"""  
 #from normalise import normalise
@@ -25,21 +24,12 @@ from nltk.tokenize import WordPunctTokenizer
 from num2words import num2words
 import sys, glob, os, zipfile, itertools, random , datetime, collections
 from tqdm.notebook import tqdm
-from sklearn.base import BaseEstimator, TransformerMixin
+
 
 #parser.Defaults.stop_words |= {"my_new_stopword1","my_new_stopword2"} # add new stopwords #nlp.Defaults.stop_words.add("my_new_stopword")
 #parser.Defaults.stop_words -= {"my_new_stopword1", "my_new_stopword2"} # remove stopwords #nlp.Defaults.stop_words.remove("whatever")
 
 
-class TextTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, key):
-        self.key = key
-
-    def fit(self, X, y=None, *parg, **kwarg):
-        return self
-
-    def transform(self, X):
-        return X[self.key]
 
 class Preprocess_Pipeline(): #BaseEstimator, TransformerMixin):
     """Availible functions: PrePreProcesor, Normalizer, PosCleaner, Tokenizer, transform. | Methods can be fitted and reused, stored as pipeline until triggered by transform method.\n
