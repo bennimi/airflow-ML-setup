@@ -5,7 +5,7 @@ def pg_hook():
     
     login = db_uri.username
     password = db_uri.password
-    dbname = db_uri.path[1:]
+    dbname = os.getenv("MODEL_DATABASE_NAME") #db_uri.path[1:]
     host = db_uri.hostname
     port = db_uri.port
         
@@ -20,6 +20,8 @@ def pg_hook():
 
 
 
+## session should be added into the session.py 
+# =============================================================================
 class conn_setup:
     import os
     from urllib.parse import urlparse
@@ -58,6 +60,7 @@ class conn_setup:
         from airflow.hooks.postgres_hook import PostgresHook
         return PostgresHook(postgres_conn_id=conn_setup.conn_id)
 
-
+# 
+# =============================================================================
 
 

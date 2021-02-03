@@ -27,7 +27,6 @@ from dag_setup.helper.helper_functions import TextTransformer
 #https://stackoverflow.com/questions/23045318/scikit-grid-search-over-multiple-classifiers
 
 
-    
 # path = "C:/Virtual-Environments/docker-shared/airflow-setup/datasets/cleaned/"
 # df_name = "prepared_1.csv"
 # model_name = 'svc'
@@ -81,11 +80,11 @@ def rdf_model(feature_pipeline):
     
     parameter_grid = {'rdf__bootstrap': [True, False],
                       'rdf__criterion': ['gini', 'entropy'],
-                      'rdf__max_depth': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None],
+                      'rdf__max_depth': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
                       'rdf__max_features': ['auto', 'sqrt'],
                       'rdf__min_samples_leaf': [1, 2, 4],
                       'rdf__min_samples_split': [2, 5, 10],
-                      'rdf__n_estimators': [10,100,200, 400, 600, 800, 1000]}
+                      'rdf__n_estimators': [10,100,200, 400, 600, 800]}
     rdf_pipeline = RandomizedSearchCV(rdf_pipeline, parameter_grid, n_iter = 10, cv = 5, n_jobs = -1)    
     return rdf_pipeline
     

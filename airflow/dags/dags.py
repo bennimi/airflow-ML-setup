@@ -22,13 +22,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.metrics import accuracy_score,recall_score, precision_score,f1_score, classification_report, confusion_matrix
 
-import csv, os, glob, sys, random, pickle,StringIO
+import csv, os, glob, sys, random, pickle
+from io import StringIO
 import pandas as pd
 
 import dag_setup.helper.TextProcessorModule as tp
 from dag_setup.helper.helper_functions import TextTransformer
 from dag_setup.ModelsModule import svc_model, rdf_model, logreg_model, feature_pipeline
-from dag_setup.postgres_hook_config import pg_hook
+#from dag_setup.postgres_hook_config import pg_hook # discarded
 
 
 #from datetime import datetime, timedelta
@@ -47,6 +48,8 @@ feature_pipeline_specs =  feature_pipeline(key="tweet",n_grams=(1,2),n_comp=150)
 models = {'rdf':rdf_model,'logreg':logreg_model,'svc':svc_model} # extensible, models just need to follow structure from ModelsModule
 n_samples = 100
 
+# DB hook
+pg_hook = PostgresHook(postgres_conn_id='postgres_hook')
 
 # 2.2 init dict-args
 args ={'owner':'bennimi','start_date':days_ago(1)}
@@ -55,7 +58,6 @@ args ={'owner':'bennimi','start_date':days_ago(1)}
 dag = DAG(dag_id='ml_pipe',default_args=args,schedule_interval=None)
 
 # 3 define functions
-
 # 3.1 create
 """ sensors"""
 
@@ -161,18 +163,28 @@ def train_model(model_id,model,csv_id,**context):
         ("Precision:", round(precision_score(data_dict['y_test'], preds,labels=[0,4],pos_label=4),4)),\
         ('f1:',round(f1_score(data_dict['y_test'],preds,labels=[0,4],pos_label=4),4))
     
-
-
 def model_insert(model_id,csv_id,**context):
     model_name = context['ti'].xcom_pull(key='model-{}_{}'.format(model_id,csv_id))
     model = pickle.load(open(model_name+'.pkl','rb'))
     scores = context['ti'].xcom_pull(key='scores-{}_{}'.format(model_id,csv_id))
     scores = scores.split(',')
-    pg_conn = pg_hook()
-    pg_cur = pg_conn.cursor()
-    pg_cur.execute("INSERT INTO TABLE models (model,model_name,model_acc,model_f1) VALUES ('{}', '{}', '{}', '{}')".format(model,model_name,scores[0],scores[1]))
-    # pg_cur.close()
-    pg_conn.close()
+    dts_insert = "INSERT INTO TABLE models (model,model_name,model_acc,model_f1) VALUES (%s, %s, %s, %s);"
+    pg_hook.run(dts_insert, parameters=(model, model_name,scores[0],scores[1]))
+
+
+## discarded, using native PostgresHook instead
+# =============================================================================
+# def model_insert(model_id,csv_id,**context):
+#     model_name = context['ti'].xcom_pull(key='model-{}_{}'.format(model_id,csv_id))
+#     model = pickle.load(open(model_name+'.pkl','rb'))
+#     scores = context['ti'].xcom_pull(key='scores-{}_{}'.format(model_id,csv_id))
+#     scores = scores.split(',')
+#     pg_conn = pg_hook()
+#     pg_cur = pg_conn.cursor()
+#     pg_cur.execute("INSERT INTO TABLE models (model,model_name,model_acc,model_f1) VALUES ('{}', '{}', '{}', '{}')".format(model,model_name,scores[0],scores[1]))
+#     # pg_cur.close()
+#     pg_conn.close()
+# =============================================================================
 
 def tweets_insert():
     pg_conn = pg_hook()
@@ -190,8 +202,7 @@ def query_table():
 
     
 # 4 set up dag
-with dag:
-    
+with dag: 
     run_check_num_file = PythonOperator(
         task_id = 'check_num_file',
         python_callable = check_num_files,
@@ -282,5 +293,4 @@ for csv_id, upstream_dag in enumerate([run_data_split_1,run_data_split_2]):
             )
         upstream_dag >> run_model >> insert_model
         insert_model >> run_dummy
-
 

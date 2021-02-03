@@ -28,9 +28,10 @@ services:
     depends_on:
       - postgres
     environment:
-      - DATABASE_URL=postgresql://airflow:airflow@postgres:5432/model_db # set uri to get conn in dag (workaround)
+      - AIRFLOW_CONN_POSTGRES_HOOK=postgres://airflow:airflow@postgres:5432/model_db
+      #- DATABASE_URL=postgresql://airflow:airflow@postgres:5432/airflow # set uri for backend 
+      - MODEL_DATABASE_NAME=model_db # match with init.sql
       - MODEL_DATABASE_CONN_NAME=postgres_hook
-      
       - AIRFLOW__CORE__FERNET_KEY= 'qjpPmZDrA0fzAKTyuVTmX9ISvpPRFbS2K4Mq1Zwtjzk='
       #- AIRFLOW__CONN__POSTGRES_HOOK=postgres://airflow:airflow@postgres:5432/model_db #create db conn
       - LOAD_EX=n
