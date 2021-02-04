@@ -25,6 +25,7 @@ services:
     build: ./airflow
     #image: puckel/docker-airflow:1.10.9
     restart: always
+    user: root 
     depends_on:
       - postgres
     environment:
@@ -36,12 +37,9 @@ services:
       #- AIRFLOW__CONN__POSTGRES_HOOK=postgres://airflow:airflow@postgres:5432/model_db #create db conn
       - LOAD_EX=n
       - EXECUTOR=Local
-    #volumes: # just for testing purposes...
-      #- ./datasets/:/usr/local/ 
-      #- ./models:/usr/local/model/
-      #- ./airflow/dags:/usr/local/airflow/dags
-      # copy files
-      #- /production/model/
+    volumes:
+      - model_data:/usr/local/airflow/modeldata
+      - ./airflow/dags:/usr/local/airflow/dags # test purpose 
     ports:
       - "8080:8080"
     command: webserver 
@@ -51,7 +49,15 @@ services:
       interval: 30s
       timeout: 30s
       retries: 2
-    
+  datahelper: # container to copy data to shared volume 
+      image: busybox 
+      depends_on:
+        - webserver
+      volumes: 
+        - ./datasets:/datasets
+        - model_data:/data
+      #command: tail -f /dev/null
+      command:  "cp -avr /datasets /data"  
 # attach persistant docker volume    
 volumes:
   model_data:

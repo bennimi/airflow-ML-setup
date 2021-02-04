@@ -39,8 +39,8 @@ from dag_setup.ModelsModule import svc_model, rdf_model, logreg_model, feature_p
 ### create airflow variables --> documentation airflow howto
 
 # define paths
-script_path = r"/usr/local/scripts/"
-df_path = r"/usr/local/datasets/"
+#script_path = r"/usr/local/scripts/"
+df_path = r"/usr/local/airflow/modeldata/"
 
 # ML setup
 test_size = 0.2
@@ -62,9 +62,11 @@ dag = DAG(dag_id='ml_pipe',default_args=args,schedule_interval=None)
 """ sensors"""
 
 def check_num_files(**context):
-    train_file = glob.glob(df_path+"train/*.csv")
-    if not len(train_file) == 1:     
-        raise ValueError('Input check found more than 1 file: \nplease check "/usr/local/airflow/train/" ')       
+    train_file = glob.glob(df_path+"datasets/train/*.csv")
+    if len(train_file) > 1:     
+        raise ValueError("Input check found more than 1 file: \nplease check {}".format(df_path+"train/"))  
+    if len(train_file) == 0:    
+        raise ValueError("Input check didn´t find a file: \nplease check {}".format(df_path+"train/"))
     context['ti'].xcom_push(key='train_file',value=train_file[0])
         
 # 3.2 check import file
@@ -98,7 +100,9 @@ def data_prepare(csv_id,**context):
     #df = pd.DataFrame(data_query)
     in_file = context['ti'].xcom_pull(key='cleaned')
     df = pd.read_csv(in_file, index_col=None, header=None)
-    if csv_id == 1:        
+    if csv_id == 1:    
+        import nltk
+        nltk.download('wordnet')
         clean =  tp.Preprocess_Pipeline()
         clean.Tokenizer(stopword_remove=True,
                           length_remove=2,
@@ -165,13 +169,21 @@ def train_model(model_id,model,csv_id,**context):
     
 def model_insert(model_id,csv_id,**context):
     model_name = context['ti'].xcom_pull(key='model-{}_{}'.format(model_id,csv_id))
-    model = pickle.load(open(model_name+'.pkl','rb'))
+    with open(model_name+'.pkl','rb') as f:
+        model = f.read()
     scores = context['ti'].xcom_pull(key='scores-{}_{}'.format(model_id,csv_id))
     scores = scores.split(',')
-    dts_insert = "INSERT INTO TABLE models (model,model_name,model_acc,model_f1) VALUES (%s, %s, %s, %s);"
+    dts_insert = "INSERT INTO models (model,model_name,model_acc,model_f1) VALUES (%s, %s, %s, %s);"
     pg_hook.run(dts_insert, parameters=(model, model_name,scores[0],scores[1]))
 
-
+def model_select_best(**context):
+    pg_conn = pg_hook.get_conn()
+    pg_cur = pg_conn.cursor()
+    pg_cur.execute("SELECT model_name FROM models ORDER BY model_acc DESC LIMIT 1;")
+    data = pg_cur.fetchall()
+    pg_conn.close(), pg_cur.close()
+    print(data,flush=True)
+    
 ## discarded, using native PostgresHook instead
 # =============================================================================
 # def model_insert(model_id,csv_id,**context):
@@ -223,8 +235,8 @@ with dag:
         retry_delay=timedelta(seconds=1))
     
     run_feature_pipeline = PythonOperator(
-        task_id = 'feature_pipeline',
-        python_callable = feature_pipeline,
+        task_id = 'feature_pipeline_fit',
+        python_callable = feature_pipeline_fit,
         provide_context = True,)  
     
     run_data_prepare_1 = PythonOperator(
@@ -250,23 +262,23 @@ with dag:
         python_callable = data_split,
         provide_context = True,
         op_kwargs={'csv_id': 2})
-        
     
-    run_dummy = DummyOperator(
-            task_id='dummy',
-            trigger_rule = TriggerRule.ALL_SUCCESS)
+    run_model_select_best = PythonOperator(
+            task_id = 'model_select_best',
+            python_callable = model_select_best,
+            provide_context = True,
+            trigger_rule = TriggerRule.ALL_DONE)
     
-    # run_create_table = PostgresOperator(
-    #     task_id='create_table',
-    #     postgres_conn_id='postgres_hook',
-    #     sql = create_table_sql)    
+    # run_dummy = DummyOperator(
+    #     task_id='dummy',
+    #     trigger_rule = TriggerRule.ALL_DONE)
     
     # run_train_model = BashOperator(
     #     task_id = 'rdf',
     #     bash_command = "python {0}models.py {1} {2} {3}".format(script_path,
     #                                                         ),
     #     provide_context = True)
-    
+        
 
     
 run_check_num_file >> run_check_import >> run_pre_clean >> run_feature_pipeline >>\
@@ -292,5 +304,5 @@ for csv_id, upstream_dag in enumerate([run_data_split_1,run_data_split_2]):
             dag=dag
             )
         upstream_dag >> run_model >> insert_model
-        insert_model >> run_dummy
+        insert_model >> run_model_select_best
 
